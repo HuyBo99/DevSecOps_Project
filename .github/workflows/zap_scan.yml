@@ -1,4 +1,4 @@
-name: OWASP ZAP Security Scan (Full Pentest)
+name: Super DevSecOps Pipeline (SAST & DAST)
 
 on:
   push:
@@ -9,39 +9,43 @@ permissions:
   contents: write
 
 jobs:
-  zap_scan:
+  security_scan:
     runs-on: ubuntu-latest
-    name: Quet bao mat Web (Full Scan)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Chuan bi file bao cao
+      # --- PHẦN 1: SAST (Quét mã nguồn với Snyk) ---
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        continue-on-error: true # Để Pipeline vẫn chạy tiếp DAST kể cả khi code có lỗi
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=low
+
+      # --- PHẦN 2: DAST (Quét Web đang chạy với ZAP) ---
+      - name: Chuan bi file bao cao DAST
         run: |
           touch report.html
           chmod 777 report.html
 
       - name: Chay ZAP FULL SCAN (Docker)
-        # Tăng timeout cho job này lên vì Full Scan chạy rất lâu
         timeout-minutes: 40 
         run: |
-          # Dùng zap-full-scan.py thay vì zap-baseline.py để quét sâu
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
             -t https://demo.owasp-juice.shop/ \
             -r report.html || true
 
-      - name: Kiem tra va Luu bao cao
+      - name: Luu ket qua vao thu muc 02
         if: always()
         run: |
           mkdir -p 02_Ket_qua_quet
-          if [ -s report.html ]; then
-            cp report.html 02_Ket_qua_quet/full_report_$(date +'%H%M').html
-            echo "--- ĐÃ CÓ BÁO CÁO FULL SCAN ---"
-          fi
-
-      - name: Tu dong day len Github
+          [ -s report.html ] && cp report.html 02_Ket_qua_quet/full_report_$(date +'%H%M').html || echo "No DAST report"
+          
+      - name: Tu dong day tat ca len Github
         if: always()
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Upgrade: Full Security Scan Report #${{ github.run_number }}"
+          commit_message: "DevSecOps Upgrade: SAST with Snyk and DAST with ZAP"
           file_pattern: '02_Ket_qua_quet/*.html'
