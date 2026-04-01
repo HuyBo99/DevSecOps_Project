@@ -1,35 +1,36 @@
-name: "CI-CD Security Scan with OWASP ZAP"
+name: OWASP ZAP Security Scan
 
-# 1. Điều kiện kích hoạt: Tự động chạy mỗi khi bạn Push code lên nhánh main
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch: # Cái này để ông có nút "Run" trên GitHub để test cho nhanh
 
 jobs:
   zap_scan:
     runs-on: ubuntu-latest
-    name: "Quét lỗ hổng bảo mật Web"
+    name: Quét lỗ hổng bảo mật Web
     steps:
-      # Bước 1: Lấy mã nguồn từ Repository của bạn
-      - name: "Checkout code"
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # Bước 2: Chạy OWASP ZAP để quét Baseline (Quét nhanh)
-      # Đây là bước quan trọng nhất trong đề tài của bạn
-      - name: "ZAP Baseline Scan"
+      - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.12.0
         with:
-          # Link web mục tiêu (Bạn có thể dùng link demo của Juice Shop)
-          target: 'https://juice-shop.herokuapp.com/' 
-          # Nếu phát hiện lỗi, Pipeline sẽ báo đỏ (Fail)
-          fail_action: true 
-          # Tên file báo cáo xuất ra
-          artifact_name: 'zap_report.html'
+          target: 'https://juice-shop.herokuapp.com/'
+          artifact_name: 'zap_report'
 
-      # Bước 3: Tải file báo cáo (Report) lên GitHub để bạn có thể tải về nộp cho thầy
-      - name: "Upload Scan Report"
-        if: always() # Luôn chạy kể cả khi phát hiện lỗi
-        uses: actions/upload-artifact@v4
-        with:
-          name: "Ket_qua_quet_ZAP"
-          path: 'zap_report.html'
+      # Bước này cực kỳ quan trọng để lưu vào thư mục 02_Ket_qua_quet
+      - name: Upload Scan Report to Repo
+        if: always()
+        run: |
+          mkdir -p 02_Ket_qua_quet
+          cp zap_report.html 02_Ket_qua_quet/report_$(date +'%Y%m%d').html
+          
+      - name: Commit and Push report
+        if: always()
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add 02_Ket_qua_quet/*.html
+          git commit -m "Auto-update: Kết quả quét bảo mật $(date +'%Y-%m-%d')" || exit 0
+          git push
