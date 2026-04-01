@@ -16,26 +16,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.12.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          target: 'https://demo.owasp-juice.shop/'
-          fail_action: false
-          allow_issue_writing: false
-          # Không dùng artifact_name của nó nữa để tránh lỗi đặt tên
-          cmd_options: '-r report.html'
+      # DÙNG DOCKER TRỰC TIẾP - ĐÂY LÀ CÁCH DỨT ĐIỂM LỖI ARTIFACT
+      - name: Chạy ZAP Scan bằng Docker
+        run: |
+          docker run --rm -v $(pwd):/zap/wrk/:rw -t zaproxy/zap-stable zap-baseline.py \
+            -t https://demo.owasp-juice.shop/ \
+            -r report.html || true
 
-      - name: Luu bao cao
+      - name: Luu bao cao vao thu muc 02
         if: always()
         run: |
           mkdir -p 02_Ket_qua_quet
-          # Copy file report.html ra thư mục của Huy
+          # Kéo file report.html từ Docker ra thư mục của Huy
           [ -f report.html ] && cp report.html 02_Ket_qua_quet/report_$(date +'%H%M').html || echo "No report"
           
       - name: Tu dong day len Github
         if: always()
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto-update report ${{ github.run_number }}"
+          commit_message: "Success: Báo cáo bảo mật ${{ github.run_number }}"
           file_pattern: '02_Ket_qua_quet/*.html'
