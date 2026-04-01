@@ -1,4 +1,4 @@
-name: OWASP ZAP Security Scan
+name: OWASP ZAP Security Scan (Full Pentest)
 
 on:
   push:
@@ -11,21 +11,22 @@ permissions:
 jobs:
   zap_scan:
     runs-on: ubuntu-latest
-    name: Quet bao mat Web
+    name: Quet bao mat Web (Full Scan)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Chuan bi file bao cao
         run: |
-          # Tạo sẵn file rỗng và cấp quyền tối đa để Docker ghi vào được
           touch report.html
           chmod 777 report.html
 
-      - name: Chay ZAP Scan (Docker)
+      - name: Chay ZAP FULL SCAN (Docker)
+        # Tăng timeout cho job này lên vì Full Scan chạy rất lâu
+        timeout-minutes: 40 
         run: |
-          # Chạy với UID của root (0) để ép ghi file
-          docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-baseline.py \
+          # Dùng zap-full-scan.py thay vì zap-baseline.py để quét sâu
+          docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
             -t https://demo.owasp-juice.shop/ \
             -r report.html || true
 
@@ -33,18 +34,14 @@ jobs:
         if: always()
         run: |
           mkdir -p 02_Ket_qua_quet
-          # Kiểm tra nếu file có nội dung (> 0 bytes)
           if [ -s report.html ]; then
-            cp report.html 02_Ket_qua_quet/report_$(date +'%H%M').html
-            echo "--- DA CO FILE BAO CAO ---"
-          else
-            echo "--- FILE VAN RONG - TAO FILE LOI DE THEO DOI ---"
-            echo "<html><body><h1>ZAP không quet duoc link nay. Kiem tra Logs buoc tren!</h1></body></html>" > 02_Ket_qua_quet/error_log.html
+            cp report.html 02_Ket_qua_quet/full_report_$(date +'%H%M').html
+            echo "--- ĐÃ CÓ BÁO CÁO FULL SCAN ---"
           fi
 
       - name: Tu dong day len Github
         if: always()
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Final Fix: Da co bao cao bao mat #${{ github.run_number }}"
+          commit_message: "Upgrade: Full Security Scan Report #${{ github.run_number }}"
           file_pattern: '02_Ket_qua_quet/*.html'
