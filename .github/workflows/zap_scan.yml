@@ -3,7 +3,10 @@ name: OWASP ZAP Security Scan
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # Cái này để ông có nút "Run" trên GitHub để test cho nhanh
+  workflow_dispatch:
+
+permissions: # Cấp quyền ghi vào Repo ngay trong code
+  contents: write
 
 jobs:
   zap_scan:
@@ -18,19 +21,22 @@ jobs:
         with:
           target: 'https://juice-shop.herokuapp.com/'
           artifact_name: 'zap_report'
+          fail_action: false # Không cho Pipeline dừng lại khi thấy lỗi bảo mật
 
-      # Bước này cực kỳ quan trọng để lưu vào thư mục 02_Ket_qua_quet
       - name: Upload Scan Report to Repo
         if: always()
         run: |
           mkdir -p 02_Ket_qua_quet
-          cp zap_report.html 02_Ket_qua_quet/report_$(date +'%Y%m%d').html
+          # Kiểm tra nếu file tồn tại mới copy để tránh lỗi
+          if [ -f "zap_report.html" ]; then
+            cp zap_report.html 02_Ket_qua_quet/report_$(date +'%Y%m%d').html
+          fi
           
       - name: Commit and Push report
         if: always()
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add 02_Ket_qua_quet/*.html
           git commit -m "Auto-update: Kết quả quét bảo mật $(date +'%Y-%m-%d')" || exit 0
           git push
