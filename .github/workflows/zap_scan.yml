@@ -11,7 +11,7 @@ permissions:
 jobs:
   zap_scan:
     runs-on: ubuntu-latest
-    name: Quét lỗ hổng bảo mật Web
+    name: Quet bao mat Web
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,20 +22,20 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           target: 'https://demo.owasp-juice.shop/'
           fail_action: false
-          allow_issue_writing: false  # <--- DÒNG NÀY ĐỂ DIỆT LỖI 128
+          allow_issue_writing: false
+          # Không dùng artifact_name của nó nữa để tránh lỗi đặt tên
           cmd_options: '-r report.html'
 
-      - name: Di chuyển báo cáo vào thư mục
+      - name: Luu bao cao
         if: always()
         run: |
           mkdir -p 02_Ket_qua_quet
-          if [ -f "report.html" ]; then
-            cp report.html 02_Ket_qua_quet/report_$(date +'%Y%m%d_%H%M').html
-          fi
+          # Copy file report.html ra thư mục của Huy
+          [ -f report.html ] && cp report.html 02_Ket_qua_quet/report_$(date +'%H%M').html || echo "No report"
           
-      - name: Auto Commit and Push
+      - name: Tu dong day len Github
         if: always()
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto-update: Báo cáo bảo mật ${{ github.run_id }}"
+          commit_message: "Auto-update report ${{ github.run_number }}"
           file_pattern: '02_Ket_qua_quet/*.html'
