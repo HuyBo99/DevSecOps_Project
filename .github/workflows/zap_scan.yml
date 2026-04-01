@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # Quyền ghi vào Repo
+  contents: write
 
 jobs:
   zap_scan:
@@ -20,19 +20,18 @@ jobs:
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: 'https://juice-shop.herokuapp.com/'
-          artifact_name: 'zap_report'
           fail_action: false
+          # Ép ZAP phải tạo ra file tên là report.html
+          cmd_options: '-r report.html'
 
       - name: Di chuyển báo cáo vào thư mục
         if: always()
         run: |
           mkdir -p 02_Ket_qua_quet
-          # Kiểm tra nếu file tồn tại mới copy
-          if [ -f "zap_report.html" ]; then
-            cp zap_report.html 02_Ket_qua_quet/report_$(date +'%Y%m%d_%H%M').html
-          fi
+          # Copy bất kỳ file html nào tìm thấy vào thư mục kết quả
+          cp *.html 02_Ket_qua_quet/report_$(date +'%Y%m%d_%H%M').html || echo "Không tìm thấy file"
+          ls -l 02_Ket_qua_quet/
 
-      # CHIÊU CUỐI: Dùng Action chuyên dụng để đẩy code (Bypass lỗi 128)
       - name: Auto Commit and Push
         if: always()
         uses: stefanzweifel/git-auto-commit-action@v5
