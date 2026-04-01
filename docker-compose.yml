@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # 1. Ứng dụng Web mục tiêu (Đã tích hợp sẵn Database SQLite)
+  vulnerable-web:
+    image: bkimminich/juice-shop:latest
+    container_name: juice-shop
+    ports:
+      - "3000:3000"
+    networks:
+      - devsecops-net
+
+  # 2. Công cụ quét bảo mật OWASP ZAP
+  owasp-zap:
+    image: owasp/zap2docker-stable
+    container_name: zap-scanner
+    # Giữ container chạy để có thể thực hiện lệnh quét từ Terminal
+    command: sleep infinity 
+    volumes:
+      - ./05_Scan_Reports:/zap/wrk/:rw
+    networks:
+      - devsecops-net
+
+networks:
+  devsecops-net:
+    driver: bridge
