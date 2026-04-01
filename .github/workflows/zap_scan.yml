@@ -3,46 +3,41 @@ name: OWASP ZAP Security Scan
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # Cho phép ông bấm nút chạy thủ công trên GitHub
+  workflow_dispatch:
 
 permissions:
-  contents: write # Cấp quyền tối cao cho con Bot ghi file vào Repo
+  contents: write
 
 jobs:
   zap_scan:
     runs-on: ubuntu-latest
     name: Quét lỗ hổng bảo mật Web
     steps:
-      # Bước 1: Lấy code từ Repo về máy ảo của GitHub
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true # Giữ lại quyền đăng nhập để push
 
-      # Bước 2: Chạy OWASP ZAP để quét web mục tiêu
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: 'https://juice-shop.herokuapp.com/'
           artifact_name: 'zap_report'
-          fail_action: false # Rất quan trọng: Không dừng Pipeline kể cả khi thấy lỗi bảo mật
+          fail_action: false
 
-      # Bước 3: Di chuyển file báo cáo vào đúng thư mục 02_Ket_qua_quet
       - name: Lưu báo cáo vào thư mục kết quả
         if: always()
         run: |
           mkdir -p 02_Ket_qua_quet
-          # Kiểm tra nếu file tồn tại thì mới copy, đặt tên kèm ngày giờ cho chuyên nghiệp
           if [ -f "zap_report.html" ]; then
             cp zap_report.html 02_Ket_qua_quet/report_$(date +'%Y%m%d_%H%M').html
-          else
-            echo "Không tìm thấy file report, kiểm tra lại bước quét!"
           fi
 
-      # Bước 4: Con Bot tự thực hiện Commit và Push file báo cáo lên GitHub cho Huy
       - name: Đẩy báo cáo lên GitHub
         if: always()
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add 02_Ket_qua_quet/*.html
-          git commit -m "Auto-update: Kết quả quét bảo mật $(date +'%d-%m-%Y %H:%M')" || exit 0
-          git push origin main
+          # Chỉ commit nếu có file mới, tránh lỗi khi không có gì thay đổi
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update: Báo cáo bảo mật $(date +'%d-%m-%Y')" && git push)
