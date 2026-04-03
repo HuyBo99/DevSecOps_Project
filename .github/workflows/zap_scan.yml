@@ -1,4 +1,4 @@
-name: Super DevSecOps Pipeline (SAST & DAST)
+name: DevSecOps Kill-Switch Pipeline
 
 on:
   push:
@@ -15,37 +15,48 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # --- PHẦN 1: SAST (Quét mã nguồn với Snyk) ---
-      - name: Run Snyk to check for vulnerabilities
+      # 1. Quét mã nguồn (SAST) - Giúp phát hiện lỗi từ bên trong
+      - name: Run Snyk SAST
         uses: snyk/actions/node@master
-        continue-on-error: true # Để Pipeline vẫn chạy tiếp DAST kể cả khi code có lỗi
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=low
 
-      # --- PHẦN 2: DAST (Quét Web đang chạy với ZAP) ---
-      - name: Chuan bi file bao cao DAST
+      # 2. Quét Website đang chạy (DAST) - Tấn công thử nghiệm
+      - name: Chuan bi file bao cao
         run: |
           touch report.html
           chmod 777 report.html
 
       - name: Chay ZAP FULL SCAN (Docker)
-        timeout-minutes: 40 
         run: |
+          # Chạy Full Scan để chắc chắn lòi ra lỗi High (để kích hoạt Kill Switch)
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
             -t https://demo.owasp-juice.shop/ \
             -r report.html || true
 
-      - name: Luu ket qua vao thu muc 02
+      # 3. LOGIC QUYẾT ĐỊNH (KILL-SWITCH)
+      - name: Kich hoat phan ung tu dong
         if: always()
         run: |
-          mkdir -p 02_Ket_qua_quet
-          [ -s report.html ] && cp report.html 02_Ket_qua_quet/full_report_$(date +'%H%M').html || echo "No DAST report"
+          # Mặc định là hiện trang chủ bình thường
+          cp normal.html index.html
           
-      - name: Tu dong day tat ca len Github
+          # Kiểm tra nếu trong file báo cáo report.html có chứa chữ "High" (lỗi đỏ)
+          if grep -q "High" report.html; then
+            echo "------------------------------------------------"
+            echo "CẢNH BÁO: PHÁT HIỆN LỖI HIGH - ĐANG ĐÓNG BẰNG WEB"
+            echo "------------------------------------------------"
+            # Ép trang web chuyển sang giao diện bị tấn công
+            cp attack.html index.html
+          else
+            echo "Hệ thống an toàn, tiếp tục duy trì trạng thái bình thường."
+          fi
+
+      # 4. Đẩy kết quả lên GitHub để cập nhật trang Web (GitHub Pages)
+      - name: Tu dong day len Github
         if: always()
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "DevSecOps Upgrade: SAST with Snyk and DAST with ZAP"
-          file_pattern: '02_Ket_qua_quet/*.html'
+          commit_message: "Security System: Auto-response triggered #${{ github.run_number }}"
+          file_pattern: 'index.html 02_Ket_qua_quet/*.html report.html'
