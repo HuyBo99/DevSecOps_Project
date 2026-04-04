@@ -1,4 +1,4 @@
-name: DevSecOps Kill-Switch Pipeline
+name: DevSecOps Final Kill-Switch
 
 on:
   push:
@@ -7,56 +7,54 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
-  security_scan:
+  security_scan_and_deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Quét mã nguồn (Tạm tắt Snyk nếu Repo chưa có code Node.js/Python để tránh lỗi)
-      # Nếu ông muốn dùng Snyk, hãy đảm bảo có file package.json ở root nhé.
-
-      # 2. Quét Website (DAST)
-      - name: Chuan bi file bao cao
+      # 1. Chạy ZAP Full Scan
+      - name: Chay ZAP FULL SCAN
         run: |
           touch report.html
           chmod 777 report.html
-
-      - name: Chay ZAP FULL SCAN (Docker)
-        run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
             -t https://demo.owasp-juice.shop/ \
             -r report.html || true
 
-      # 3. LOGIC KILL-SWITCH (Đã gia cố để không bị exit code 1)
-      - name: Kich hoat phan ung tu dong
-        if: always()
+      # 2. LOGIC QUYẾT ĐỊNH (Không bao giờ để index.html trống)
+      - name: Create index.html based on security status
         run: |
-          # 1. Mặc định là trang an toàn (Lấy từ file hoặc tạo mới nếu mất file)
-          if [ -f normal.html ]; then
-            cp normal.html index.html
-          else
-            echo "<html><body style='text-align:center;padding-top:20%;'><h1>Hệ thống đang hoạt động bình thường</h1></body></html>" > index.html
-          fi
-          
-          # 2. Kiểm tra nếu có lỗi High thì "ép" sang giao diện Đen Đỏ
-          if grep -i -q "High" report.html; then
-            echo "--- PHÁT HIỆN LỖI HIGH! KÍCH HOẠT KILL SWITCH ---"
+          if [ -f report.html ] && grep -i -q "High" report.html; then
+            echo "PHAT HIEN LOI HIGH - KICH HOAT KILL SWITCH"
+            # Ưu tiên dùng file attack.html của ông, nếu không có thì tự tạo code xịn
             if [ -f attack.html ]; then
               cp attack.html index.html
             else
-              # Trường hợp mất file attack.html, tự tạo code CSS ngay tại chỗ cho ngầu
-              echo "<html><body style='background:black;color:red;text-align:center;padding-top:15%;font-family:monospace;'><h1>[ SYSTEM UNDER ATTACK ]</h1><p>Detected High Vulnerabilities by DevSecOps Pipeline</p></body></html>" > index.html
+              echo "<html><body style='background:black;color:red;text-align:center;padding-top:15%;font-family:monospace;'><h1>[ SYSTEM UNDER ATTACK ]</h1><p>High Vulnerabilities Detected</p></body></html>" > index.html
+            fi
+          else
+            echo "He thong an toan"
+            if [ -f normal.html ]; then
+              cp normal.html index.html
+            else
+              echo "<html><body style='text-align:center;padding-top:20%;'><h1>System Running Safely</h1></body></html>" > index.html
             fi
           fi
+          # Tạo file .nojekyll để chắc chắn hiển thị
+          touch .nojekyll
 
-      # 4. Đẩy kết quả lên GitHub (Thêm dấu || true để không bị lỗi nếu không có gì thay đổi)
-      - name: Tu dong day len Github
-        if: always()
-        uses: stefanzweifel/git-auto-commit-action@v5
+      # 3. TRIỂN KHAI THẲNG LÊN WEB (Bỏ qua bước commit rườm rà)
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          commit_message: "DevSecOps: Auto-response and Report update"
-          file_pattern: 'index.html 02_Ket_qua_quet/*.html report.html'
-          push_options: '--force'
+          path: '.'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
