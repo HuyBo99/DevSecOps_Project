@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống An Toàn - DevSecOps Monitor</title>
+    <style>
+        /* Giao diện hệ thống đang an toàn */
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        .dashboard {
+            background: white;
+            padding: 50px;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            max-width: 500px;
+        }
+
+        .status-icon {
+            width: 80px;
+            height: 80px;
+            background-color: #dcfce7;
+            color: #16a34a;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            margin: 0 auto 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        h1 { margin: 0; color: #166534; font-size: 24px; }
+        p { color: #64748b; margin-top: 10px; }
+        .badge {
+            background: #22c55e;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+    </style>
+
+    <script>
+        async function checkSecurityStatus() {
+            try {
+                // Kiểm tra file index.html (Trang chủ) liên tục
+                // Thêm tham số ngẫu nhiên để tránh trình duyệt lấy bản cũ (Cache)
+                const response = await fetch('index.html?t=' + new Date().getTime(), { cache: "no-store" });
+                const text = await response.text();
+
+                // Nếu trong file index.html có chứa từ khóa của trang Attack
+                if (text.includes("[ SYSTEM UNDER ATTACK ]")) {
+                    console.warn("PHÁT HIỆN TẤN CÔNG! ĐANG KÍCH HOẠT PHẢN ỨNG...");
+                    // Tự động đá người dùng sang trang cảnh báo
+                    window.location.href = "attack.html";
+                }
+            } catch (err) {
+                console.error("Lỗi giám sát:", err);
+            }
+        }
+
+        // Cứ mỗi 3 giây sẽ đi kiểm tra "nhịp tim" hệ thống một lần
+        setInterval(checkSecurityStatus, 3000);
+    </script>
+</head>
+<body>
+
+    <div class="dashboard">
+        <div class="status-icon">✔</div>
+        <span class="badge">Trạng thái: Secure</span>
+        <h1>Hệ Thống An Toàn</h1>
+        <p>Pipeline DevSecOps của <b>Nguyen Giang Gia Huy</b> đang hoạt động ổn định.</p>
+        <p style="font-size: 13px; color: #94a3b8; margin-top: 20px;">
+            Hệ thống đang được giám sát bởi OWASP ZAP & Snyk.<br>
+            Cơ chế Kill-Switch đang ở trạng thái trực chiến.
+        </p>
+    </div>
+
+</body>
+</html>
