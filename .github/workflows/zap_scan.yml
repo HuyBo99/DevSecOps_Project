@@ -1,11 +1,10 @@
-name: DevSecOps Final Kill-Switch Pipeline
+name: Final: Siêu Pipeline DevSecOps Kill-Switch
 
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
 
-# Quyền hạn cực kỳ quan trọng để không bị lỗi 400
 permissions:
   contents: write
   pages: write
@@ -13,58 +12,54 @@ permissions:
 
 jobs:
   security_scan_and_deploy:
-    # Chỉ định môi trường để GitHub biết chỗ đẩy Web lên
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. SAST: Quét mã nguồn với Snyk (Dùng continue-on-error để không bị dừng Pipeline)
+      # 1. SAST: Quét mã nguồn với Snyk (Nếu lỗi cũng không dừng Pipeline)
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # 2. DAST: Quét Web với ZAP Full Scan
+      # 2. DAST: Quét Web với ZAP Full Scan (Quét cực kỹ)
       - name: Chuan bi file bao cao
         run: |
           touch report.html
           chmod 777 report.html
 
-      - name: Chay ZAP FULL SCAN (Docker)
+      - name: Chay ZAP FULL SCAN
         run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
             -t https://demo.owasp-juice.shop/ \
             -r report.html || true
 
-      # 3. LOGIC KILL-SWITCH: Quyết định bộ mặt của Website
+      # 3. LOGIC KILL-SWITCH: Tự động quyết định bộ mặt của Website
       - name: Create index.html based on security status
         run: |
-          # Kiểm tra file báo cáo có tồn tại và có chữ "High" không
-          if [ -f report.html ] && grep -i -q "High" report.html; then
-            echo "PHAT HIEN LOI HIGH - KICH HOAT KILL SWITCH"
-            # Ưu tiên dùng file attack.html của Huy, nếu không có thì tự tạo code xịn
+          # Kiểm tra file báo cáo có tồn tại và có chữ "High" HOẶC "Medium" không
+          if [ -f report.html ] && (grep -Ei "High|Medium" report.html); then
+            echo "⚠️ PHAT HIEN LOI NGUY HIEM (HIGH/MEDIUM) - KICH HOAT KILL SWITCH ⚠️"
+            # Ưu tiên dùng file attack.html của Huy
             if [ -f attack.html ]; then
-              cat attack.html > index.html
+              cp attack.html index.html
             else
-              echo "<html><body style='background:black;color:red;text-align:center;padding-top:15%;font-family:monospace;'><h1>[ SYSTEM UNDER ATTACK ]</h1><p>High Vulnerabilities Detected by Huy's Pipeline</p></body></html>" > index.html
+              echo "<html><body style='background:black;color:red;text-align:center;'><h1>SYSTEM LOCKED BY SECURITY</h1></body></html>" > index.html
             fi
           else
-            echo "He thong an toan - Duy tri trang thai binh thuong"
+            echo "✅ He thong an toan - Duy tri trang thai binh thuong"
             if [ -f normal.html ]; then
-              cat normal.html > index.html
+              cp normal.html index.html
             else
-              echo "<html><body style='text-align:center;padding-top:20%;font-family:sans-serif;'><h1>System Running Safely</h1><p>Powered by DevSecOps Pipeline</p></body></html>" > index.html
+              echo "<html><body><h1>Huy's Secure Website</h1></body></html>" > index.html
             fi
           fi
-          # Tạo file .nojekyll để chắc chắn hiển thị HTML
+          # Tạo file .nojekyll để GitHub Pages hiển thị đúng HTML
           touch .nojekyll
 
-      # 4. TRIỂN KHAI THẲNG LÊN GITHUB PAGES
+      # 4. TRIỂN KHAI LÊN GITHUB PAGES
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
