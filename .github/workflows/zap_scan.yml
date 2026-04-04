@@ -34,20 +34,21 @@ jobs:
       - name: Kich hoat phan ung tu dong
         if: always()
         run: |
-          # Mặc định lấy trang an toàn làm trang chủ
+          # 1. Mặc định là trang an toàn (Lấy từ file hoặc tạo mới nếu mất file)
           if [ -f normal.html ]; then
             cp normal.html index.html
           else
-            echo "<h1>System Running</h1>" > index.html
+            echo "<html><body style='text-align:center;padding-top:20%;'><h1>Hệ thống đang hoạt động bình thường</h1></body></html>" > index.html
           fi
           
-          # Kiểm tra file report.html có tồn tại và có chữ "High" không
-          if [ -f report.html ] && grep -q "High" report.html; then
+          # 2. Kiểm tra nếu có lỗi High thì "ép" sang giao diện Đen Đỏ
+          if grep -i -q "High" report.html; then
             echo "--- PHÁT HIỆN LỖI HIGH! KÍCH HOẠT KILL SWITCH ---"
             if [ -f attack.html ]; then
               cp attack.html index.html
             else
-              echo "<h1>SYSTEM UNDER ATTACK</h1>" > index.html
+              # Trường hợp mất file attack.html, tự tạo code CSS ngay tại chỗ cho ngầu
+              echo "<html><body style='background:black;color:red;text-align:center;padding-top:15%;font-family:monospace;'><h1>[ SYSTEM UNDER ATTACK ]</h1><p>Detected High Vulnerabilities by DevSecOps Pipeline</p></body></html>" > index.html
             fi
           fi
 
