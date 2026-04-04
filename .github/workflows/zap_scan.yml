@@ -11,7 +11,11 @@ permissions:
   id-token: write
 
 jobs:
+  # Job này sẽ quét bảo mật và tạo file index.html
   security_scan_and_deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -26,35 +30,25 @@ jobs:
             -t https://demo.owasp-juice.shop/ \
             -r report.html || true
 
-      # 2. LOGIC QUYẾT ĐỊNH (Không bao giờ để index.html trống)
-      - name: Create index.html based on security status
+      # 2. Tạo giao diện dựa trên kết quả quét
+      - name: Create index.html
         run: |
           if [ -f report.html ] && grep -i -q "High" report.html; then
-            echo "PHAT HIEN LOI HIGH - KICH HOAT KILL SWITCH"
-            # Ưu tiên dùng file attack.html của ông, nếu không có thì tự tạo code xịn
-            if [ -f attack.html ]; then
-              cp attack.html index.html
-            else
-              echo "<html><body style='background:black;color:red;text-align:center;padding-top:15%;font-family:monospace;'><h1>[ SYSTEM UNDER ATTACK ]</h1><p>High Vulnerabilities Detected</p></body></html>" > index.html
-            fi
+            if [ -f attack.html ]; then cp attack.html index.html; else echo "<h1>SYSTEM UNDER ATTACK</h1>" > index.html; fi
           else
-            echo "He thong an toan"
-            if [ -f normal.html ]; then
-              cp normal.html index.html
-            else
-              echo "<html><body style='text-align:center;padding-top:20%;'><h1>System Running Safely</h1></body></html>" > index.html
-            fi
+            if [ -f normal.html ]; then cp normal.html index.html; else echo "<h1>System Safe</h1>" > index.html; fi
           fi
-          # Tạo file .nojekyll để chắc chắn hiển thị
           touch .nojekyll
 
-      # 3. TRIỂN KHAI THẲNG LÊN WEB (Bỏ qua bước commit rườm rà)
+      # 3. Nén file để đẩy lên
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
+
+      # 4. Đẩy thẳng lên Web (Cái bước bị lỗi lúc nãy)
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
