@@ -42,29 +42,20 @@ jobs:
                 -config replacer.full_list(0).regex=false \
                 -config replacer.full_list(0).replacement='Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MSwidXNlcm5hbWUiOiIiLCJlbWFpbCI6ImFkbWluQGp1aWNlLXNoLm9wIiwicGFzc3dvcmQiOiIwMTkyMDIzYTdiYmQ3MzI1MDUxNmYwNjlkZjE4YjUwMCIsInJvbGUiOiJhZG1pbiIsImRlbHV4ZVRva2VuIjoiIiwibGFzdExvZ2luSXAiOiIiLCJwcm9maWxlSW1hZ2UiOiJhc3NldHMvcHVibGljL2ltYWdlcy91cGxvYWRzL2RlZmF1bHRBZG1pbi5wbmciLCJ0b3RwU2VjcmV0IjoiIiwiaXNBY3RpdmUiOnRydWUsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMDggMDY6NDI6NTMuNDI2ICswMDowMCIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMDggMDY6NDI6NTMuNDI2ICswMDowMCIsImRlbGV0ZWRBdCI6bnVsbH0sImlhdCI6MTc3NTYzMDg2Nn0.qT15Pd48Udnvr2hIRemZqOpNCGaIRJcWVQ8M-oCMAQtPGVp35oQBxR4Gi2CvtscUWcj0QIfRPDCKBWn92XYMbk9GAFPoZp1KA9w8O4mnOBOuILkNCmNiFJyDCGVD7-QdKdX4mz8A8nKoBC9TpJYbqJ_pDPw5lm0thpAxrcrbKrw'" || true
 
-      # 3. LOGIC KILL-SWITCH: Tự động quyết định bộ mặt của Website
+      # 3. LOGIC "BAN" TRANG WEB: Tự động kích hoạt dựa trên kết quả quét
       - name: Create index.html based on security status
         run: |
-          # Kiểm tra file báo cáo có tồn tại và có chữ "High" HOẶC "Medium" không
-          if [ -f report.html ] && (grep -Ei "High|Medium" report.html); then
-            echo "⚠️ PHAT HIEN LOI NGUY HIEM (HIGH/MEDIUM) - KICH HOAT KILL SWITCH ⚠️"
-            # Ưu tiên dùng file attack.html của Huy
-            if [ -f attack.html ]; then
-              cp attack.html index.html
-            else
-              echo "<html><body style='background:black;color:red;text-align:center;'><h1>SYSTEM LOCKED BY SECURITY</h1></body></html>" > index.html
-            fi
+          # Huy giải thích chỗ này:
+          # 1. Tìm chữ "High" hoặc "Medium" (Lỗi nghiêm trọng)
+          # 2. HOẶC tìm chữ "login" (Dấu hiệu tấn công vào trang đăng nhập)
+          if [ -f report.html ] && (grep -Ei "High|Medium" report.html || grep -qi "login" report.html); then
+            echo "🚨 PHAT HIEN NGUY CO LOGIN / LOI NGIEM TRONG - KICH HOAT BAN 🚨"
+            cp attack.html index.html
           else
-            echo "✅ He thong an toan - Duy tri trang thai binh thuong"
-            if [ -f normal.html ]; then
-              cp normal.html index.html
-            else
-              echo "<html><body><h1>Huy's Secure Website</h1></body></html>" > index.html
-            fi
+            echo "✅ Hệ thống an toàn - Duy trì trạng thái bình thường"
+            cp normal.html index.html
           fi
-          # Tạo file .nojekyll để GitHub Pages hiển thị đúng HTML
           touch .nojekyll
-
       # 4. TRIỂN KHAI LÊN GITHUB PAGES
       - name: Setup Pages
         uses: actions/configure-pages@v4
