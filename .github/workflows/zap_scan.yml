@@ -30,11 +30,17 @@ jobs:
           touch report.html
           chmod 777 report.html
 
-      - name: Chay ZAP FULL SCAN
+      - name: Chay ZAP FULL SCAN (Authenticated)
         run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
-            -t https://demo.owasp-juice.shop/ \
-            -r report.html || true
+            -t https://juice-shop-production-8fe2.up.railway.app/ \
+            -r report.html \
+            -z "-config replacer.full_list(0).description=auth \
+                -config replacer.full_list(0).enabled=true \
+                -config replacer.full_list(0).matchtype=REQ_HEADER \
+                -config replacer.full_list(0).matchstr=Authorization \
+                -config replacer.full_list(0).regex=false \
+                -config replacer.full_list(0).replacement='Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MSwidXNlcm5hbWUiOiIiLCJlbWFpbCI6ImFkbWluQGp1aWNlLXNoLm9wIiwicGFzc3dvcmQiOiIwMTkyMDIzYTdiYmQ3MzI1MDUxNmYwNjlkZjE4YjUwMCIsInJvbGUiOiJhZG1pbiIsImRlbHV4ZVRva2VuIjoiIiwibGFzdExvZ2luSXAiOiIiLCJwcm9maWxlSW1hZ2UiOiJhc3NldHMvcHVibGljL2ltYWdlcy91cGxvYWRzL2RlZmF1bHRBZG1pbi5wbmciLCJ0b3RwU2VjcmV0IjoiIiwiaXNBY3RpdmUiOnRydWUsImNyZWF0ZWRBdCI6IjIwMjYtMDQtMDggMDY6NDI6NTMuNDI2ICswMDowMCIsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMDggMDY6NDI6NTMuNDI2ICswMDowMCIsImRlbGV0ZWRBdCI6bnVsbH0sImlhdCI6MTc3NTYzMDg2Nn0.qT15Pd48Udnvr2hIRemZqOpNCGaIRJcWVQ8M-oCMAQtPGVp35oQBxR4Gi2CvtscUWcj0QIfRPDCKBWn92XYMbk9GAFPoZp1KA9w8O4mnOBOuILkNCmNiFJyDCGVD7-QdKdX4mz8A8nKoBC9TpJYbqJ_pDPw5lm0thpAxrcrbKrw'" || true
 
       # 3. LOGIC KILL-SWITCH: Tự động quyết định bộ mặt của Website
       - name: Create index.html based on security status
