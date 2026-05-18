@@ -33,7 +33,7 @@ jobs:
       - name: Chay ZAP FULL SCAN (Authenticated)
         run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
-           -t https://playlist-plow-briar.ngrok-free.dev/
+           -t https://playlist-plow-briar.ngrok-free.dev/ \
             -r report.html \
             -z "-config replacer.full_list(0).description=auth \ 
             -config replacer.full_list(0).enabled=true \ 
