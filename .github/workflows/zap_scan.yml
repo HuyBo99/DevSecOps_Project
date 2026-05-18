@@ -34,7 +34,7 @@ jobs:
         run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
             -t https://dungtuandiszkont.hu/ \
-            -r report.html 
+            -r report.html || true
             
 
       # 3. LOGIC "BAN" TRANG WEB: Tự động kích hoạt dựa trên kết quả quét
