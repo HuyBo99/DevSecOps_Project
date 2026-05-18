@@ -33,8 +33,8 @@ jobs:
       - name: Chay ZAP FULL SCAN (Authenticated)
         run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
-            -t https://ueftechstore.dpdns.org/ \
-            -r report.html \
+            -t https://dungtuandiszkont.hu/ \
+            -r report.html 
             
 
       # 3. LOGIC "BAN" TRANG WEB: Tự động kích hoạt dựa trên kết quả quét
