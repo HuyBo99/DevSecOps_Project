@@ -24,46 +24,69 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # 2. DAST: Quét Web với ZAP Full Scan (Quét cực kỹ)
+      # 2. DAST: Quét Web với ZAP Full Scan (Quét song song 2 hệ thống)
       - name: Chuan bi file bao cao
         run: |
-          touch report.html
-          chmod 777 report.html
+          touch report_juiceshop.html
+          touch report_phpshop.html
+          chmod 777 report_juiceshop.html
+          chmod 777 report_phpshop.html
 
-      - name: Chay ZAP FULL SCAN (Authenticated)
+      # ==================== PHẦN A: QUÉT ỨNG DỤNG CÓ SẴN (JUICE SHOP) ====================
+      - name: Chay ZAP Quet Juice Shop (Authenticated)
         run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
-           -t https://playlist-plow-briar.ngrok-free.dev/ \
-            -r report.html \
-            -z "-config replacer.full_list(0).description=auth \ 
-            -config replacer.full_list(0).enabled=true \ 
-            -config replacer.full_list(0).matchtype=REQ_HEADER \ 
-            -config replacer.full_list(0).matchstr=Authorization \ 
-            -config replacer.full_list(0).regex=false \ 
-            -config replacer.full_list(0).replacement='Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MSwidXNlcm5hbWUiOiIiLCJlbWFpbCI6ImFkbWluQGp1aWNlLXNoLm9wIiwicGFzc3dvcmQiOiIwMTkyMDIzYTdiYmQ3MzI1MDUxNmYwNjlkZjE4YjUwMCIsInJvbGUiOiJhZG1pbiIsImRlbHV4ZVRva2VuIjoiIiwibGFzdExvZ2luSXAiOiIiLCJwcm9maWxlSW1hZ2UiOiJhc3NldHMvcHVibGljL2ltYWdlcy91cGxvYWRzL2RlZmF1bHRBZG1pbi5wbmciLCJ0b3RwU2VjcmV0IjoiIiwiaXNBY3RpdmUiOnRydWUsImNyZWF0ZWRBdCI6IjIwMjYtMDUtMTcgMDk6MDA6NDguMTMxICswMDowMCIsInVwZGF0ZWRBdCI6IjIwMjYtMDUtMTcgMDk6MDA6NDguMTMxICswMDowMCIsImRlbGV0ZWRBdCI6bnVsbH0sImlhdCI6MTc3OTAwODYxMH0.Ht13ia374h0OKhEX3blETuBFTrLBFT2xhUqHya58CC2kT1EDYG9JhkbA0qhonBiEGVoTfFJ88LXts_hSJtz67MQjW1MkEoQ7cgLC8UfIjO0MQwv4W7KGpE80CnlRdpcfn7J_90maW4_H2CbcaKBmbSRyvt2WqNoqzPOb81ODY8g'" || true
-            
+            -t https://playlist-plow-briar.ngrok-free.dev \
+            -r report_juiceshop.html \
+            -z "-config replacer.full_list(0).description=auth \
+                -config replacer.full_list(0).enabled=true \
+                -config replacer.full_list(0).matchtype=REQ_HEADER \
+                -config replacer.full_list(0).matchstr=Authorization \
+                -config replacer.full_list(0).regex=false \
+                -config replacer.full_list(0).replacement='Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdGF0dXMiOiJzdWNjZXNzIiwiZGF0YSI6eyJpZCI6MSwidXNlcm5hbWUiOiIiLCJlbWFpbCI6ImFkbWluQGp1aWNlLXNoLm9wIiwicGFzc3dvcmQiOiIwMTkyMDIzYTdiYmQ3MzI1MDUxNmYwNjlkZjE4YjUwMCIsInJvbGUiOiJhZG1pbiIsImRlbHV4ZVRva2VuIjoiIiwibGFzdExvZ2luSXAiOiIiLCJwcm9maWxlSW1hZ2UiOiJhc3N assetHMvcHVibGljL2ltYWdlcy91cGxvYWRzL2RlZmF1bHRBZG1pbi5wbmciLCJ0b3RwU2VjcmV0IjoiIiwiaXNBY3RpdmUiOnRydWUsImNyZWF0ZWRBdCI6IjIwMjYtMDUtMTcgMDk6MDA6NDguMTMxICswMDowMCIsInVwZGF0ZWRBdCI6IjIwMjYtMDUtMTcgMDk6MDA6NDguMTMxICswMDowMCIsImRlbGV0ZWRBdCI6bnVsbH0sImlhdCI6MTc3OTAwODYxMH0.Ht13ia374h0OKhEX3blETuBFTrLBFT2xhUqHya58CC2kT1EDYG9JhkbA0qhonBiEGVoTfFJ88LXts_hSJtz67MQjW1MkEoQ7cgLC8UfIjO0MQwv4W7KGpE80CnlRdpcfn7J_90maW4_H2CbcaKBmbSRyvt2WqNoqzPOb81ODY8g'" || true
 
-      # 3. LOGIC "BAN" TRANG WEB: Tự động kích hoạt dựa trên kết quả quét
+      # ==================== PHẦN B: QUÉT ỨNG DỤNG TỰ LÀM (PHP SHOP) ====================
+      - name: Chay ZAP Quet Web PHP Tu Lam (Unauthenticated)
+        run: |
+          docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
+            -t https://215022dfb9faa8.lhr.life \
+            -r report_phpshop.html || true
+
+      # 3. LOGIC "BAN" TRANG WEB: Chỉ cần 1 trong 2 web dính lỗi Medium/High hoặc Login là BAN luôn
       - name: Create index.html based on security status
         run: |
-          # giải thích chỗ này:``
-          # 1. Tìm chữ "High" hoặc "Medium" (Lỗi nghiêm trọng)
-          # 2. HOẶC tìm chữ "login" (Dấu hiệu tấn công vào trang đăng nhập)
-          if [ -f report.html ] && (grep -Ei "High|Medium" report.html || grep -qi "login" report.html); then
-            echo "🚨 PHAT HIEN NGUY CO LOGIN / LOI NGIEM TRONG - KICH HOAT BAN 🚨"
+          # Khởi tạo cờ báo động an toàn (0 là an toàn, 1 là có biến)
+          TRIGGER_BAN=0
+          
+          # Kiểm tra báo cáo của Juice Shop
+          if [ -f report_juiceshop.html ] && (grep -Ei "High|Medium" report_juiceshop.html || grep -qi "login" report_juiceshop.html); then
+            echo "⚠️ Phát hiện nguy cơ bảo mật tại hệ thống Lab Juice Shop!"
+            TRIGGER_BAN=1
+          fi
+          
+          # Kiểm tra báo cáo của Web PHP tự làm
+          if [ -f report_phpshop.html ] && (grep -Ei "High|Medium" report_phpshop.html || grep -qi "login" report_phpshop.html); then
+            echo "⚠️ Phát hiện nguy cơ bảo mật tại hệ thống Web PHP Tự Làm!"
+            TRIGGER_BAN=1
+          fi
+          
+          # Đưa ra quyết định cuối cùng cho Kill-Switch
+          if [ $TRIGGER_BAN -eq 1 ]; then
+            echo "🚨 KÍCH HOẠT BAN TOÀN HỆ THỐNG - CHUYỂN GIAO DIỆN ĐỎ 🚨"
             cp attack.html index.html
           else
-            echo "✅ Hệ thống an toàn - Duy trì trạng thái bình thường"
+            echo "✅ Cả hai hệ thống đều an toàn - Duy trì trạng thái bình thường"
             cp normal.html index.html
           fi
           touch .nojekyll
+
       # 4. TRIỂN KHAI LÊN GITHUB PAGES
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.' # Đẩy toàn bộ thư mục hiện tại lên
+          path: '.' 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
