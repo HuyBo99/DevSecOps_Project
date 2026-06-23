@@ -52,30 +52,43 @@ jobs:
             -t https://79a3d7bd7b34d2.lhr.life/ \
             -r report_phpshop.html || true
 
-      # 3. LOGIC "BAN" TRANG WEB: Chỉ cần 1 trong 2 web dính lỗi Medium/High hoặc Login là BAN luôn
+      # 3. LOGIC ĐÁNH GIÁ RỦI RO (ĐỎ - VÀNG - XANH)
       - name: Create index.html based on security status
         run: |
-          # Khởi tạo cờ báo động an toàn (0 là an toàn, 1 là có biến)
-          TRIGGER_BAN=0
+          # Khởi tạo biến đếm
+          HIGH_COUNT=0
+          MEDIUM_COUNT=0
           
-          # Kiểm tra báo cáo của Juice Shop
-          if [ -f report_juiceshop.html ] && (grep -Ei "High|Medium" report_juiceshop.html || grep -qi "login" report_juiceshop.html); then
-            echo "⚠️ Phát hiện nguy cơ bảo mật tại hệ thống Lab Juice Shop!"
-            TRIGGER_BAN=1
+          # Đếm số lượng lỗi HIGH và MEDIUM ở báo cáo PHP Shop (dùng grep -c)
+          if [ -f report_phpshop.html ]; then
+            HIGH_PHP=$(grep -c "High" report_phpshop.html || true)
+            MED_PHP=$(grep -c "Medium" report_phpshop.html || true)
+            HIGH_COUNT=$((HIGH_COUNT + HIGH_PHP))
+            MEDIUM_COUNT=$((MEDIUM_COUNT + MED_PHP))
           fi
           
-          # Kiểm tra báo cáo của Web PHP tự làm
-          if [ -f report_phpshop.html ] && (grep -Ei "High|Medium" report_phpshop.html || grep -qi "login" report_phpshop.html); then
-            echo "⚠️ Phát hiện nguy cơ bảo mật tại hệ thống Web PHP Tự Làm!"
-            TRIGGER_BAN=1
+          # Đếm thêm ở báo cáo Juice Shop
+          if [ -f report_juiceshop.html ]; then
+            HIGH_JUICE=$(grep -c "High" report_juiceshop.html || true)
+            MED_JUICE=$(grep -c "Medium" report_juiceshop.html || true)
+            HIGH_COUNT=$((HIGH_COUNT + HIGH_JUICE))
+            MEDIUM_COUNT=$((MEDIUM_COUNT + MED_JUICE))
           fi
           
-          # Đưa ra quyết định cuối cùng cho Kill-Switch
-          if [ $TRIGGER_BAN -eq 1 ]; then
-            echo "🚨 KÍCH HOẠT BAN TOÀN HỆ THỐNG - CHUYỂN GIAO DIỆN ĐỎ 🚨"
+          echo "📊 TỔNG KẾT: Hệ thống phát hiện $HIGH_COUNT lỗi HIGH và $MEDIUM_COUNT lỗi MEDIUM."
+
+          # Đưa ra quyết định bằng ngưỡng rủi ro (Risk Threshold)
+          if [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "🚨 KÍCH HOẠT BAN: Có lỗi HIGH (Nghiêm trọng). KHÓA WEB NGAY LẬP TỨC!"
             cp attack.html index.html
+            
+          elif [ "$MEDIUM_COUNT" -gt 5 ]; then
+            echo "::warning::⚠️ CẢNH BÁO BẢO MẬT: Phát hiện $MEDIUM_COUNT lỗi MEDIUM."
+            echo "Hệ thống chưa chạm ngưỡng nguy hiểm. VẪN CHO PHÉP WEB HOẠT ĐỘNG!"
+            cp normal.html index.html
+            
           else
-            echo "✅ Cả hai hệ thống đều an toàn - Duy trì trạng thái bình thường"
+            echo "✅ AN TOÀN: Hệ thống ổn định (Rủi ro thấp). Duy trì web bình thường!"
             cp normal.html index.html
           fi
           touch .nojekyll
