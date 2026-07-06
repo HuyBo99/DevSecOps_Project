@@ -73,7 +73,7 @@ jobs:
             echo "❌ Đánh sập Pipeline ngay lập tức để ngăn chặn bước Deploy!"
             exit 1 
             
-          elif [ "$MEDIUM_COUNT" -gt 5 ]; then
+          elif [ "$MEDIUM_COUNT" -gt 3 ]; then
             echo "::warning::⚠️ CẢNH BÁO BẢO MẬT: Phát hiện $MEDIUM_COUNT lỗi MEDIUM."
             echo "✅ Hệ thống chưa chạm ngưỡng nguy hiểm. VẪN CHO PHÉP WEB DEPLOY!"
             exit 0
