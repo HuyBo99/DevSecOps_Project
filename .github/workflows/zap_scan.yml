@@ -68,7 +68,7 @@ jobs:
           echo "📊 TỔNG KẾT: Hệ thống phát hiện $HIGH_COUNT lỗi HIGH và $MEDIUM_COUNT lỗi MEDIUM."
 
           # Đưa ra quyết định bằng ngưỡng rủi ro
-          if [ 1 -gt 0 ]; then
+          if [ "$HIGH_COUNT" -gt 0 ]; then
             echo "🚨 KÍCH HOẠT KILL-SWITCH: CÓ LỖI HIGH NGHIÊM TRỌNG."
             echo "❌ Đánh sập Pipeline ngay lập tức để ngăn chặn bước Deploy!"
             exit 1 
