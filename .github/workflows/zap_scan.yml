@@ -24,20 +24,20 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # 2. DAST: Quét Web với ZAP Full Scan (Quét song song 2 hệ thống)
+      # 2. DAST: Quét Web với ZAP Full Scan (Xuất file JSON thay vì HTML)
       - name: Chuan bi file bao cao
         run: |
-          touch report_juiceshop.html
-          touch report_phpshop.html
-          chmod 777 report_juiceshop.html
-          chmod 777 report_phpshop.html
+          touch report_juiceshop.json
+          touch report_phpshop.json
+          chmod 777 report_juiceshop.json
+          chmod 777 report_phpshop.json
 
       # ==================== PHẦN A: QUÉT ỨNG DỤNG CÓ SẴN (JUICE SHOP) ====================
       - name: Chay ZAP Quet Juice Shop (Authenticated)
         run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
             -t https://playlist-plow-briar.ngrok-free.dev \
-            -r report_juiceshop.html \
+            -J report_juiceshop.json \
             -z "-config replacer.full_list(0).description=auth \
                 -config replacer.full_list(0).enabled=true \
                 -config replacer.full_list(0).matchtype=REQ_HEADER \
@@ -50,46 +50,37 @@ jobs:
         run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
             -t https://79a3d7bd7b34d2.lhr.life/ \
-            -r report_phpshop.html || true
+            -J report_phpshop.json || true
 
-      # 3. LOGIC ĐÁNH GIÁ RỦI RO (ĐỎ - VÀNG - XANH)
-      - name: Create index.html based on security status
+      # 3. LOGIC ĐÁNH GIÁ RỦI RO (QUALITY GATE CHUẨN DEVSECOPS)
+      - name: Security Quality Gate (Risk Evaluation)
         run: |
-          # Khởi tạo biến đếm
-          HIGH_COUNT=0
-          MEDIUM_COUNT=0
+          # Dùng jq để trích xuất chính xác trường riskcode từ file JSON (3 = High, 2 = Medium)
+          HIGH_PHP=$(jq '[.. | objects | select(.riskcode == "3")] | length' report_phpshop.json 2>/dev/null || echo 0)
+          MED_PHP=$(jq '[.. | objects | select(.riskcode == "2")] | length' report_phpshop.json 2>/dev/null || echo 0)
           
-          # Đếm số lượng lỗi HIGH và MEDIUM ở báo cáo PHP Shop (dùng grep -c)
-          if [ -f report_phpshop.html ]; then
-            HIGH_PHP=$(grep -c "High" report_phpshop.html || true)
-            MED_PHP=$(grep -c "Medium" report_phpshop.html || true)
-            HIGH_COUNT=$((HIGH_COUNT + HIGH_PHP))
-            MEDIUM_COUNT=$((MEDIUM_COUNT + MED_PHP))
-          fi
+          HIGH_JUICE=$(jq '[.. | objects | select(.riskcode == "3")] | length' report_juiceshop.json 2>/dev/null || echo 0)
+          MED_JUICE=$(jq '[.. | objects | select(.riskcode == "2")] | length' report_juiceshop.json 2>/dev/null || echo 0)
           
-          # Đếm thêm ở báo cáo Juice Shop
-          if [ -f report_juiceshop.html ]; then
-            HIGH_JUICE=$(grep -c "High" report_juiceshop.html || true)
-            MED_JUICE=$(grep -c "Medium" report_juiceshop.html || true)
-            HIGH_COUNT=$((HIGH_COUNT + HIGH_JUICE))
-            MEDIUM_COUNT=$((MEDIUM_COUNT + MED_JUICE))
-          fi
+          HIGH_COUNT=$((HIGH_PHP + HIGH_JUICE))
+          MEDIUM_COUNT=$((MED_PHP + MED_JUICE))
           
           echo "📊 TỔNG KẾT: Hệ thống phát hiện $HIGH_COUNT lỗi HIGH và $MEDIUM_COUNT lỗi MEDIUM."
 
-          # Đưa ra quyết định bằng ngưỡng rủi ro (Risk Threshold)
+          # Đưa ra quyết định bằng ngưỡng rủi ro
           if [ "$HIGH_COUNT" -gt 0 ]; then
-            echo "🚨 KÍCH HOẠT BAN: Có lỗi HIGH (Nghiêm trọng). KHÓA WEB NGAY LẬP TỨC!"
-            cp attack.html index.html
+            echo "🚨 KÍCH HOẠT KILL-SWITCH: CÓ LỖI HIGH NGHIÊM TRỌNG."
+            echo "❌ Đánh sập Pipeline ngay lập tức để ngăn chặn bước Deploy!"
+            exit 1 
             
           elif [ "$MEDIUM_COUNT" -gt 5 ]; then
             echo "::warning::⚠️ CẢNH BÁO BẢO MẬT: Phát hiện $MEDIUM_COUNT lỗi MEDIUM."
-            echo "Hệ thống chưa chạm ngưỡng nguy hiểm. VẪN CHO PHÉP WEB HOẠT ĐỘNG!"
-            cp normal.html index.html
+            echo "✅ Hệ thống chưa chạm ngưỡng nguy hiểm. VẪN CHO PHÉP WEB DEPLOY!"
+            exit 0
             
           else
-            echo "✅ AN TOÀN: Hệ thống ổn định (Rủi ro thấp). Duy trì web bình thường!"
-            cp normal.html index.html
+            echo "✅ AN TOÀN: Hệ thống ổn định (Rủi ro thấp). Tiếp tục tiến trình Deploy!"
+            exit 0
           fi
           touch .nojekyll
 
