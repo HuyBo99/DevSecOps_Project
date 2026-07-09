@@ -49,7 +49,7 @@ jobs:
       - name: Chay ZAP Quet Web PHP Tu Lam (Unauthenticated)
         run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
-            -t https://79a3d7bd7b34d2.lhr.life/ \
+            -t https://6afc3a9b118f75.lhr.life \
             -J report_phpshop.json || true
 
       # 3. LOGIC ĐÁNH GIÁ RỦI RO (QUALITY GATE CHUẨN DEVSECOPS)
@@ -73,7 +73,7 @@ jobs:
             echo "❌ Đánh sập Pipeline ngay lập tức để ngăn chặn bước Deploy!"
             exit 1 
             
-          elif [ "$MEDIUM_COUNT" -gt 3 ]; then
+          elif [ "$MEDIUM_COUNT" -gt 5 ]; then
             echo "::warning::⚠️ CẢNH BÁO BẢO MẬT: Phát hiện $MEDIUM_COUNT lỗi MEDIUM."
             echo "✅ Hệ thống chưa chạm ngưỡng nguy hiểm. VẪN CHO PHÉP WEB DEPLOY!"
             exit 0
