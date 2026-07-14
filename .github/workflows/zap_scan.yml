@@ -50,7 +50,7 @@ jobs:
       - name: Chay ZAP Quet Web PHP Tu Lam (Unauthenticated)
         run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
-            -t https://tllqo-116-111-185-172.run.pinggy-free.link
+            -t https://tllqo-116-111-185-172.run.pinggy-free.link \
             -J report_phpshop.json || true
             
 
