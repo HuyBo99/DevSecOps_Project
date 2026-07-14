@@ -31,6 +31,7 @@ jobs:
           touch report_phpshop.json
           chmod 777 report_juiceshop.json
           chmod 777 report_phpshop.json
+          
 
       # ==================== PHẦN A: QUÉT ỨNG DỤNG CÓ SẴN (JUICE SHOP) ====================
       - name: Chay ZAP Quet Juice Shop (Authenticated)
@@ -49,8 +50,9 @@ jobs:
       - name: Chay ZAP Quet Web PHP Tu Lam (Unauthenticated)
         run: |
           docker run --rm -v $(pwd):/zap/wrk/:rw -u 0 -t zaproxy/zap-stable zap-full-scan.py \
-            -t https://6afc3a9b118f75.lhr.life \
+            -t https://f3d96a0f71ec2c.lhr.life \
             -J report_phpshop.json || true
+            
 
       # 3. LOGIC ĐÁNH GIÁ RỦI RO (QUALITY GATE CHUẨN DEVSECOPS)
       - name: Security Quality Gate (Risk Evaluation)
@@ -84,6 +86,7 @@ jobs:
           fi
           touch .nojekyll
 
+          
       # 4. TRIỂN KHAI LÊN GITHUB PAGES
       - name: Setup Pages
         uses: actions/configure-pages@v4
